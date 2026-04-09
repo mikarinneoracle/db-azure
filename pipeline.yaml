@@ -1,0 +1,39 @@
+# azure-pipelines.yml
+trigger:
+  branches:
+    include:
+      - main
+
+stages:
+- stage: Terraform
+  displayName: 'Terraform Deployment'
+  jobs:
+  - job: TerraformApply
+    displayName: 'Apply Terraform for ADBS'
+    pool:
+      name: Default
+    steps:
+
+    # Test OCI CLI auth  
+    - script: |
+        oci os ns get --auth instance_principal
+      displayName: 'Test OCI CLI'
+
+    # Terraform + Azure CLI combined
+    - task: AzureCLI@2
+      displayName: 'Terraform Init/Plan/Apply on Azure'
+      inputs:
+        azureSubscription: '$(AZURE_SERVICE_CONNECTION_NAME)'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          echo "Terraform + Azure CLI auth starting..."
+             
+          # Terraform Init
+          terraform init
+          
+          # Terraform Plan
+          terraform plan -var-file="dev.tfvars" -out=tfplan
+          
+          # Terraform Apply
+          terraform apply -auto-approve tfplan
