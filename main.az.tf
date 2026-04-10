@@ -6,7 +6,9 @@ provider "azurerm" {
 locals {
   common_tags = var.common_tags
   az_region   = var.az_region
-  adbs_name   = var.random_suffix_length > 0 ? "${var.name}${random_string.suffix[0].result}" : var.name
+  suffix      = var.random_suffix_length > 0 ? random_string.suffix[0].result : null
+  adbs_name   = local.suffix != null ? "${trimsuffix(var.name, "-")}000${local.suffix}" : var.name
+  vnet_name   = local.suffix != null && var.new_vnet ? "${trimsuffix(var.virtual_network_name, "-")}000${local.suffix}" : var.virtual_network_name
 }
 
 resource "random_string" "suffix" {
@@ -29,7 +31,7 @@ module "azure-resource-grp" {
 
 # Azure VNet with delegated subnet
 module "avm_network" {
-  count = var.new_vnet ==  true ? 1 : 0
+  count = var.new_vnet == true ? 1 : 0
 
   source  = "Azure/avm-res-network-virtualnetwork/azurerm"
   version = "0.5.0"
@@ -39,7 +41,7 @@ module "avm_network" {
   tags                = local.common_tags
   resource_group_name = module.azure-resource-grp.resource_group_name
   location            = var.az_region
-  name                = var.virtual_network_name
+  name                = local.vnet_name
   address_space       = [var.virtual_network_address_space]
 
   subnets = {
@@ -63,20 +65,20 @@ data "azurerm_subnet" "delegated_subnet" {
   depends_on = [module.avm_network]
 
   name                 = var.delegated_subnet_name
-  virtual_network_name = var.virtual_network_name
+  virtual_network_name = local.vnet_name
   resource_group_name  = module.azure-resource-grp.resource_group_name
 }
 
 data "azurerm_virtual_network" "this" {
   depends_on = [module.avm_network]
 
-  name                = var.virtual_network_name
+  name                = local.vnet_name
   resource_group_name = module.azure-resource-grp.resource_group_name
 }
 
 # Oracle Autonomous Database@Azure (Read-only after creation)
 module "azurerm_ora_adbs" {
-  depends_on = [ module.azure-resource-grp ]
+  depends_on                       = [module.azure-resource-grp]
   source                           = "./modules/azurerm-ora-adbs"
   name                             = local.adbs_name
   resource_group_name              = module.azure-resource-grp.resource_group_name
@@ -100,4 +102,3 @@ module "azurerm_ora_adbs" {
   customer_contacts                = var.customer_contacts
   tags                             = local.common_tags
 }
-

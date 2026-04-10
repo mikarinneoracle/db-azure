@@ -11,24 +11,59 @@ stages:
   - job: TerraformApply
     displayName: 'Apply Terraform for ADBS'
     pool:
-      name: Default
+      #name: Default
+      vmImage: 'ubuntu-latest'
 
     steps:
-    # Terraform + Azure CLI combined
-    - task: AzureCLI@2
-      displayName: 'Terraform Init/Plan/Apply on Azure'
+    # Step 1: Install the Terraform CLI
+    - task: TerraformInstaller@1
       inputs:
-        azureSubscription: '$(AZURE_SERVICE_CONNECTION_NAME)'
-        scriptType: 'bash'
-        scriptLocation: 'inlineScript'
-        inlineScript: |
-          echo "Terraform + Azure CLI auth starting..."
-             
-          # Terraform Init
-          terraform init
-          
-          # Terraform Plan
-          terraform plan -var-file="dev.tfvars" -out=tfplan
-          
-          # Terraform Apply
-          terraform apply -auto-approve tfplan
+        terraformVersion: '1.9.2'
+
+    # Step 2: Initialize Terraform (Configures Backend State)
+    - task: TerraformTaskV4@4
+      displayName: 'Terraform Init'
+      inputs:
+        provider: 'azurerm'
+        command: 'init'
+        backendServiceArm: '$(AZURE_SERVICE_CONNECTION_NAME)'
+        backendAzureRmResourceGroupName: '$(AZURE_RM_GROUP_NAME)'
+        backendAzureRmStorageAccountName: '$(AZURE_RM_GROUP_NAME)'
+        backendAzureRmContainerName: 'tfstate'
+        backendAzureRmKey: 'terraform.tfstate'
+
+    # Step 3: Create an Execution Plan
+    - task: TerraformTaskV4@4
+      displayName: 'Terraform Plan'
+      inputs:
+        provider: 'azurerm'
+        command: 'plan'
+        commandOptions: '-var-file="dev.tfvars" -out=tfplan'
+        environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION_NAME)'
+
+    # Step 4: Apply the Changes
+    - task: TerraformTaskV4@4
+      displayName: 'Terraform Apply'
+      inputs:
+        provider: 'azurerm'
+        command: 'apply'
+        commandOptions: '-auto-approve tfplan'
+        environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION_NAME)'
+
+    # Step 5. Plan destroy All
+    #- task: TerraformTaskV4@4
+    #  displayName: 'Create Destroy Plan'
+    #  inputs:
+    #    provider: 'azurerm'
+    #    command: 'plan'
+    #    commandOptions: '-destroy -out=tfdestroyplan -var-file="dev.tfvars"'
+    #    environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION_NAME)'
+
+    # Step 6. Destroy with the destroy plan
+    #- task: TerraformTaskV4@4
+    #  displayName: 'Apply Destroy Plan'
+    #  inputs:
+    #    provider: 'azurerm'
+    #    command: 'apply'
+    #    commandOptions: 'tfdestroyplan'
+    #    environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION_NAME)'
