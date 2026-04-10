@@ -1,6 +1,4 @@
-# db-azure
-
-Terraform project for deploying Oracle Autonomous Database on Azure with an Azure DevOps pipeline.
+## Terraform project for deploying Oracle Autonomous Database on Azure with an Azure DevOps pipeline.
 
 ## Credit
 
