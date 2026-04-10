@@ -7,6 +7,8 @@ Terraform project for deploying Oracle Autonomous Database on Azure with an Azur
 - Provisions Azure resources (resource group, VNet/subnet) and Oracle Autonomous Database on Azure.
 - Uses Terraform with an `azurerm` remote backend for persisted state.
 - Runs plan/apply (and optional destroy) through `pipeline.yaml`.
+- Database settings are defined in `dev.tfvars`:
+  - https://github.com/mikarinneoracle/db-azure/blob/main/dev.tfvars
 
 ## Azure DevOps Pipeline
 
