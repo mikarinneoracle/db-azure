@@ -2,6 +2,12 @@
 
 Terraform project for deploying Oracle Autonomous Database on Azure with an Azure DevOps pipeline.
 
+## Credit
+
+This project is based on the Oracle reference template:
+
+- https://github.com/oci-landing-zones/terraform-oci-multicloud-azure/tree/main/templates/azurerm-oci-adbs-quickstart
+
 ## What This Project Does
 
 - Provisions Azure resources (resource group, VNet/subnet) and Oracle Autonomous Database on Azure.
@@ -9,6 +15,15 @@ Terraform project for deploying Oracle Autonomous Database on Azure with an Azur
 - Runs plan/apply (and optional destroy) through `pipeline.yaml`.
 - Database settings are defined in `dev.tfvars`:
   - https://github.com/mikarinneoracle/db-azure/blob/main/dev.tfvars
+
+## Naming Pattern Update
+
+VNET and DB names were modified in [`main.az.tf`](/Users/MRINNE/projects/db-azure/main.az.tf) to follow the same suffix pattern logic.
+
+- VNET uses: `<base-name>000<random-suffix>`
+- DB uses: `<base-name>000<random-suffix>`
+
+For DB naming, `000` is used as the separator because DB name constraints do not allow a hyphen.
 
 ## Azure DevOps Pipeline
 
