@@ -41,6 +41,15 @@ Optional (commented out by default):
 5. `plan -destroy` to create `tfdestroyplan`
 6. `apply tfdestroyplan` to destroy resources
 
+## Prerequisites
+
+Before running the pipeline, create the remote backend storage resources in Azure in advance.
+
+- The storage account used for backend state must already exist.
+- The `tfstate` container must already exist in that storage account.
+
+This is required because Terraform backend initialization (`terraform init`) happens before Terraform can create any infrastructure. In other words, Terraform cannot bootstrap its own backend container during the same run.
+
 ## Required Pipeline Variables
 
 Set these as Azure DevOps pipeline variables:
