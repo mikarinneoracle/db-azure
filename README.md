@@ -13,12 +13,12 @@ This project is based on the Oracle reference template:
 - Provisions Azure resources (resource group, VNet/subnet) and Oracle Autonomous Database on Azure.
 - Uses Terraform with an `azurerm` remote backend for persisted state.
 - Runs plan/apply (and optional destroy) through `pipeline.yaml`.
-- Database settings are defined in `dev.tfvars`:
+- Database settings are defined in [`dev.tfvars`](./dev.tfvars):
   - https://github.com/mikarinneoracle/db-azure/blob/main/dev.tfvars
 
 ## Naming Pattern Update
 
-VNET and DB names were modified in [`main.az.tf`](/Users/MRINNE/projects/db-azure/main.az.tf) to follow the same suffix pattern logic.
+VNET and DB names were modified in [`main.az.tf`](./main.az.tf) to follow the same suffix pattern logic.
 
 - VNET uses: `<base-name>000<random-suffix>`
 - DB uses: `<base-name>000<random-suffix>`
@@ -27,7 +27,7 @@ For DB naming, `000` is used as the separator because DB name constraints do not
 
 ## Azure DevOps Pipeline
 
-Pipeline file: [`pipeline.yaml`](/Users/MRINNE/projects/db-azure/pipeline.yaml)
+Pipeline file: [`pipeline.yaml`](./pipeline.yaml)
 
 The pipeline runs these Terraform stages:
 
@@ -58,7 +58,7 @@ Set these as Azure DevOps pipeline variables:
 
 ## Terraform State Persistence (Remote tfstate)
 
-Terraform backend is configured as `azurerm` in [`terraform.tf`](/Users/MRINNE/projects/db-azure/terraform.tf).
+Terraform backend is configured as `azurerm` in [`terraform.tf`](./terraform.tf).
 
 During pipeline `init`, state is stored remotely in Azure Storage:
 
@@ -71,7 +71,7 @@ This keeps state persistent between runs and shared across pipeline executions.
 
 ## How Destroy Works
 
-Destroy steps are intentionally commented in [`pipeline.yaml`](/Users/MRINNE/projects/db-azure/pipeline.yaml):
+Destroy steps are intentionally commented in [`pipeline.yaml`](./pipeline.yaml):
 
 - `Create Destroy Plan`
 - `Apply Destroy Plan`
