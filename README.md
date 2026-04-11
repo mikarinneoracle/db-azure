@@ -8,7 +8,7 @@ This project is based on the Oracle reference template:
 
 ## What This Project Does
 
-- Provisions Azure resources (resource group, VNet/subnet) and Oracle Autonomous Database on Azure.
+- Provisions Azure resources (VNet/subnet) and Oracle Autonomous Database on Azure.
 - Uses Terraform with an `azurerm` remote backend for persisted state.
 - Runs plan/apply (and optional destroy) through `pipeline.yaml`.
 - Database settings are defined in [`dev.tfvars`](./dev.tfvars):
@@ -43,10 +43,12 @@ Optional (commented out by default):
 
 Before running the pipeline, create the remote backend storage resources in Azure in advance.
 
+- The Azure DevOps ARM service connection must already exist, and must match `AZURE_SERVICE_CONNECTION_NAME`.
+- The backend Resource Group must already exist, and must match `AZURE_RM_GROUP_NAME`.
 - The storage account used for backend state must already exist.
 - The `tfstate` container must already exist in that storage account.
 
-This is required because Terraform backend initialization (`terraform init`) happens before Terraform can create any infrastructure. In other words, Terraform cannot bootstrap its own backend container during the same run.
+This is required because Terraform backend initialization (`terraform init`) happens before Terraform can create any infrastructure. In other words, Terraform cannot bootstrap its own backend resource group/storage/container during the same run.
 
 ## Required Pipeline Variables
 
