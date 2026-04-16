@@ -4,12 +4,21 @@ trigger:
     include:
       - main
 
+parameters:
+- name: operation
+  displayName: 'Terraform operation'
+  type: string
+  default: 'apply'
+  values:
+    - apply
+    - destroy
+
 stages:
 - stage: Terraform
   displayName: 'Terraform Deployment'
   jobs:
-  - job: TerraformApply
-    displayName: 'Apply Terraform for ADBS'
+  - job: TerraformRun
+    displayName: 'Run Terraform for ADBS'
     pool:
       #name: Default
       vmImage: 'ubuntu-latest'
@@ -32,38 +41,50 @@ stages:
         backendAzureRmContainerName: 'tfstate'
         backendAzureRmKey: 'terraform.tfstate'
 
-    # Step 3: Create an Execution Plan
+    # Step 3a: Create an execution plan for apply
     - task: TerraformTaskV4@4
-      displayName: 'Terraform Plan'
+      displayName: 'Terraform Plan (Apply)'
+      condition: and(succeeded(), eq('${{ parameters.operation }}', 'apply'))
       inputs:
         provider: 'azurerm'
         command: 'plan'
         commandOptions: '-var-file="dev.tfvars" -out=tfplan'
         environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION_NAME)'
 
-    # Step 4: Apply the Changes
+    # Step 4a: Apply the execution plan
     - task: TerraformTaskV4@4
       displayName: 'Terraform Apply'
+      condition: and(succeeded(), eq('${{ parameters.operation }}', 'apply'))
       inputs:
         provider: 'azurerm'
         command: 'apply'
         commandOptions: '-auto-approve tfplan'
         environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION_NAME)'
 
-    # Step 5. Plan destroy All
-    #- task: TerraformTaskV4@4
-    #  displayName: 'Create Destroy Plan'
-    #  inputs:
-    #    provider: 'azurerm'
-    #    command: 'plan'
-    #    commandOptions: '-destroy -out=tfdestroyplan -var-file="dev.tfvars"'
-    #    environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION_NAME)'
+    # Safety guard: block destroy when pipeline was not started manually
+    - script: |
+        echo "Destroy is only allowed for manual pipeline runs."
+        echo "Current Build.Reason=$(Build.Reason)"
+        exit 1
+      displayName: 'Guard: Block destroy on non-manual runs'
+      condition: and(succeeded(), eq('${{ parameters.operation }}', 'destroy'), ne(variables['Build.Reason'], 'Manual'))
 
-    # Step 6. Destroy with the destroy plan
-    #- task: TerraformTaskV4@4
-    #  displayName: 'Apply Destroy Plan'
-    #  inputs:
-    #    provider: 'azurerm'
-    #    command: 'apply'
-    #    commandOptions: 'tfdestroyplan'
-    #    environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION_NAME)'
+    # Step 3b: Create a destroy plan
+    - task: TerraformTaskV4@4
+      displayName: 'Terraform Plan (Destroy)'
+      condition: and(succeeded(), eq('${{ parameters.operation }}', 'destroy'), eq(variables['Build.Reason'], 'Manual'))
+      inputs:
+        provider: 'azurerm'
+        command: 'plan'
+        commandOptions: '-destroy -var-file="dev.tfvars" -out=tfdestroyplan'
+        environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION_NAME)'
+
+    # Step 4b: Apply the destroy plan
+    - task: TerraformTaskV4@4
+      displayName: 'Terraform Destroy'
+      condition: and(succeeded(), eq('${{ parameters.operation }}', 'destroy'), eq(variables['Build.Reason'], 'Manual'))
+      inputs:
+        provider: 'azurerm'
+        command: 'apply'
+        commandOptions: '-auto-approve tfdestroyplan'
+        environmentServiceNameAzureRM: '$(AZURE_SERVICE_CONNECTION_NAME)'

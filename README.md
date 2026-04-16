@@ -31,13 +31,17 @@ The pipeline runs these Terraform stages:
 
 1. `TerraformInstaller@1` to install Terraform `1.9.2`
 2. `TerraformTaskV4@4` `init` with Azure backend config
-3. `TerraformTaskV4@4` `plan` using `dev.tfvars`
-4. `TerraformTaskV4@4` `apply` using the saved `tfplan`
+3. `TerraformTaskV4@4` `plan` and `apply` for `apply` mode
+4. `TerraformTaskV4@4` `plan -destroy` and `apply` for `destroy` mode
 
-Optional (commented out by default):
+The pipeline now has a runtime parameter:
 
-5. `plan -destroy` to create `tfdestroyplan`
-6. `apply tfdestroyplan` to destroy resources
+- `operation` (default: `apply`)
+- Allowed values:
+  - `apply`: create/update ADB resources
+  - `destroy`: delete ADB resources
+
+When running manually from Azure DevOps (**Run pipeline**), users can select the `operation` value from a dropdown before execution.
 
 ## Prerequisites
 
@@ -78,22 +82,18 @@ During pipeline `init`, state is stored remotely in Azure Storage:
 
 This keeps state persistent between runs and shared across pipeline executions.
 
-## How Destroy Works
+## How `operation` Works
 
-Destroy steps are intentionally commented in [`pipeline.yaml`](./pipeline.yaml):
+Use `operation=apply` for normal deployments and `operation=destroy` to remove managed resources.
 
-- `Create Destroy Plan`
-- `Apply Destroy Plan`
+Behavior by trigger type:
 
-To run Terraform destroy:
-
-1. Uncomment both destroy tasks in `pipeline.yaml`.
-2. Commit/push the change (or run pipeline from branch with those lines uncommented).
-3. Run pipeline.
-
-The pipeline will:
-
-1. Create `tfdestroyplan` using `terraform plan -destroy`.
-2. Apply `tfdestroyplan` to remove managed resources.
-
-After destroy is complete, re-comment these steps to avoid accidental deletion in future runs.
+1. Manual run (`Build.Reason = Manual`):
+   - User can choose `apply` or `destroy`.
+   - `destroy` is allowed and runs:
+     - `Terraform Plan (Destroy)`
+     - `Terraform Destroy`
+2. Auto-triggered run from `main`:
+   - No runtime prompt is shown.
+   - Pipeline uses default `operation=apply`.
+   - If `operation=destroy` is somehow set for a non-manual run, guard step `Guard: Block destroy on non-manual runs` fails the job intentionally.
